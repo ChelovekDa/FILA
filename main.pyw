@@ -9,7 +9,7 @@ bot = telebot.TeleBot(token, parse_mode="HTML")
 # static base
 MAX_SIZE_FILE_SEND = 49
 
-rcon = [settings["RCON"], "5038489915"]
+rcon = [settings["RCON"]]
 directory = util().getBaseFolder()
 
 def check(message: telebot.types.Message) -> bool:
