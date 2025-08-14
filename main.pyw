@@ -1,8 +1,8 @@
 from os import path
 import telebot
-from Backend import util, file, folder, Path, disk
+from Backend import Util, file, folder, Path, disk
 
-settings = util().getConfig()
+settings = Util().get_config()
 token = settings["token"]
 bot = telebot.TeleBot(token, parse_mode="HTML")
 
@@ -10,7 +10,7 @@ bot = telebot.TeleBot(token, parse_mode="HTML")
 MAX_SIZE_FILE_SEND = 49
 
 rcon = [settings["RCON"]]
-directory = util().getBaseFolder()
+directory = Util().getBaseFolder()
 
 def check(message: telebot.types.Message) -> bool:
     if (str(message.from_user.id) in rcon):
@@ -20,22 +20,22 @@ def check(message: telebot.types.Message) -> bool:
 
 def updateConfig() -> None:
     global settings
-    settings = util().getConfig()
+    settings = Util().get_config()
 
 def checkIsFiles(message: telebot.types.Message) -> None:
     global directory
 
-    if (Path(f"{directory.toStr()}{util().getSep(directory.toStr())}{message.text}")).isDir() == False:
+    if (Path(f"{directory.toStr()}{Util().getSep(directory.toStr())}{message.text}")).is_dir() == False:
         print(Path(f"{directory.toStr()}{message.text}").toStr())
         bot.send_message(message.chat.id, settings["baseMessage"],
-                         reply_markup=toMarkUp(file(message.text).getListButtons()))
+                         reply_markup=to_markup(file(message.text).getListButtons()))
         directory = Path(directory.toStr() + f"/{message.text}")
     else:
         dir = folder(message.text).openFolder(directory)
         directory = dir
-        getDir(message)
+        get_dir(message)
 
-def toMarkUp(list: list[str], backButton: bool = True) -> telebot.types.ReplyKeyboardMarkup:
+def to_markup(list: list[str], backButton: bool = True) -> telebot.types.ReplyKeyboardMarkup:
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     if (backButton == True):
         markup.add("...")
@@ -44,16 +44,18 @@ def toMarkUp(list: list[str], backButton: bool = True) -> telebot.types.ReplyKey
     return markup
 
 @bot.message_handler(commands=["get"])
-def getDir(message) -> None:
+def get_dir(message) -> None:
     global directory
-    if (check(message)):
+    if check(message):
         try:
-            bot.send_message(message.chat.id, settings["baseMessage"], reply_markup=toMarkUp(directory.getMarkupListOfDir()))
+            bot.send_message(message.chat.id, settings["baseMessage"], reply_markup=to_markup(
+                directory.get_markup_list_dir()))
         except:
-            directory = util().getBaseFolder()
+            directory = Util().getBaseFolder()
             bot.send_message(message.chat.id, "<b>В процессе выполнения команды возникла ошибка!</b>\n"
                                               "Для избежания дальнейших ошибок, Ваша директория была изменена на стандартную.\n"
-                                              f"\n{settings['baseMessage']}", reply_markup=toMarkUp(directory.getMarkupListOfDir()))
+                                              f"\n{settings['baseMessage']}", reply_markup=to_markup(
+                directory.get_markup_list_dir()))
 
 @bot.message_handler(commands=["dir"])
 def printDir(message) -> None:
@@ -78,25 +80,26 @@ def textDec(message) -> None:
         if (message.text == "..."):
             if (disk().isDisk(directory.toStr())):
                 bot.send_message(message.chat.id, text=settings["baseMessage"],
-                                 reply_markup=toMarkUp(disk().getListButtons(), False))
+                                 reply_markup=to_markup(disk().getListButtons(), False))
             else:
-                directory = Path(directory.getPrevDir())
+                directory = Path(directory.get_prev_dir())
                 if (directory.toStr() == "C:"):
                     bot.send_message(message.chat.id, text=settings["baseMessage"],
-                                     reply_markup=toMarkUp(disk().getListButtons(), False))
+                                     reply_markup=to_markup(disk().getListButtons(), False))
                     return
-                getDir(message)
+                get_dir(message)
 
-        elif ("|" in message.text):
-            if (message.text == "|Send-File|"):
-                if (disk().byteToMB(path.getsize(directory.toStr())) >= int(settings["maxSizeFileSend"])):
+        elif "|" in message.text:
+            if message.text == "|Send-File|":
+                if disk().byteToMB(path.getsize(directory.toStr())) >= int(settings["maxSizeFileSend"]):
                     bot.send_message(message.chat.id, f"<b>Вес данного файла превышает установленный максимум!</b>\n"
                                                       f"Отправка данного файла имеет слишком высокий риск возникновения ошибки, из-за его веса!\n"
                                                       f"\n{settings['baseMessage']}")
-                    directory = Path(directory.getPrevDir())
-                    getDir(message)
+                    directory = Path(directory.get_prev_dir())
+                    get_dir(message)
                     return
                 else:
+                    file = None
                     try:
                         file = open(directory.toStr(), "rb")
                         bot.send_document(message.chat.id, document=file)
@@ -107,17 +110,17 @@ def textDec(message) -> None:
                                                           f"{settings['baseMessage']}")
                     finally:
                         file.close()
-                        directory = Path(directory.getPrevDir())
-                        getDir(message)
+                        directory = Path(directory.get_prev_dir())
+                        get_dir(message)
 
             elif disk().isDisk(message.text.split(" | ")[0]):
                 directory = Path(disk().getDisk(message.text.split(" | ")[0]))
-                getDir(message)
+                get_dir(message)
                 return
         else:
             try:
                 checkIsFiles(message)
             except:
-                getDir(message)
+                get_dir(message)
 
 bot.polling(none_stop=True)

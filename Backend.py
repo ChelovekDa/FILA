@@ -4,99 +4,74 @@ from win32api import GetLogicalDriveStrings
 import psutil
 class Path:
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str):
         self.path = path
 
-    def toStr(self) -> str:
+    def __str__(self) -> str:
         return self.path
 
-    def getPrevDir(self) -> str:
+    def get_prev_dir(self):
         try:
             path = ""
-            dir = Path(self.path).spDir()
-            for i in range(len(dir)):
-                if (len(dir) == i+1):
-                    return (path[:(len(path)-1)] + path[(len(path)-1)+1:])
-                else:
-                    path = path + f"{dir[i]}/"
-        except:
-            return util().getBaseFolder().toStr()
+            directory = Path(self.path).split()
+            for i in range(len(directory)):
+                if len(directory) != i+1:
+                    path = path + f"{directory[i]}/"
 
-    def isDir (self) -> bool:
-        if (os.path.isdir(self.path)):
-            return True
-        else:
-            return False
+            return path[:(len(path) - 1)] + path[(len(path) - 1) + 1:]
+        except Exception:
+            return str(Util().getBaseFolder())
 
-    def getListOfDir(self) -> list[str]:
+    def is_dir (self) -> bool:
+        return os.path.isdir(self.path)
+
+    def get_dir_list(self) -> list[str]:
         return os.listdir(self.path)
 
-    def getMarkupListOfDir(self) -> list:
-        blockSizes = ["lnk", "url", "ini", "exe"]
+    def get_markup_list_dir(self) -> list:
+        blocking_end = ["lnk", "url", "ini", "exe"]
         res = []
 
-        all = Path.getListOfDir(self)
-        for i in range(len(all)):
-            if (all[i].split(".")[0] != all[i]):
-                obj = all[i].split(".")
-                if (obj[1] in blockSizes):
-                    continue
-                else:
-                    res.append(all[i])
+        files = Path.get_dir_list(self)
+        for el in files:
+            obj = el.split(".")
+            if obj[0] != el:
+                if obj[-1] not in blocking_end:
+                    res.append(el)
             else:
-                res.append(all[i])
+                res.append(el)
         return res
 
-    def spDir(self) -> list[str]:
-        if (self.path in disk().getAllDisks()):
-            return None
-        else:
-            separator = ""
-            if ("\\" in self.path):
-                separator = "\\"
-            elif ("/" in self.path):
-                separator = "/"
-            else:
-                return None
-            return self.path.split(separator)
+    def get_separator(self) -> str:
+        return "/" if "/" in self.path else "\\"
 
-class util:
+    def split(self) -> list[str] | None:
+        return self.path.split(self.get_separator()) if self.path not in disk().getAllDisks() else None
 
-    def __init__(self):
-        pass
+class Util:
 
-    def writeOnConfig(self, data: list[str]):
+    def write_config(self, data: list[str]):
         f = open("config", "w+", encoding="UTF-8")
         f.write((f"{data[0]}*{data[1]}"))
         f.close()
 
-    def newConfig(self, data: dict[str:str]):
+    def new_config(self, data: dict[str:str]):
         f = open("config", "w+", encoding="UTF-8")
         for key in data.keys():
             f.write((f"{key}*{data[key]}\n"))
         f.close()
 
-    def replOnConfig(self, repl: str):
+    def repl_config(self, repl: str):
         conf = {}
-        oldConfig = util().getConfig()
+        oldConfig = Util().get_config()
         for key in oldConfig.keys():
             if key != repl.split("*")[0]:
                 conf[key] = oldConfig[key]
             else:
                 conf[key] = repl.split("*")[1]
-        util().newConfig(conf)
+        Util().new_config(conf)
 
-    def getSep(self, str: str) -> str:
-        separator = ""
-        if ("\\" in str):
-            separator = "\\"
-        elif ("/" in str):
-            separator = "/"
-        else:
-            return "None"
-        return separator
-
-    def getConfig(self) -> dict[str:str]:
+    def get_config(self) -> dict[str:str]:
         settings = {}
         f = open("config", "r", encoding="UTF-8")
         file = f.readlines()
@@ -113,7 +88,7 @@ class util:
         return settings
 
     def getBaseFolder(self) -> Path:
-        return Path(util().getConfig().get("baseDir"))
+        return Path(Util().get_config().get("baseDir"))
 
 class folder:
 
@@ -125,10 +100,10 @@ class folder:
         return None
 
     def openFolder(self, directory: Path) -> Path:
-        return Path((directory.toStr() + (f"{util().getSep(directory.toStr())}{self.folderName}")))
+        return Path((str(directory) + (f"{directory.get_separator()}{self.folderName}")))
 
     def openFoldere(self, directory: Path) -> Path:
-        dir = directory.spDir()
+        dir = directory.split()
         path = ""
         for i in range(len(dir)):
             if (len(dir) == i+1):
@@ -173,7 +148,7 @@ class disk:
         return disks.split('\000')[:-1]
 
     def isDisk(self, dir: str) -> bool:
-        if (Path(dir).spDir() == None):
+        if (Path(dir).split() == None):
             for i in range(len(disk().getAllDisks())):
                 if (dir == disk().getAllDisks()[i]):
                     return True
@@ -181,7 +156,7 @@ class disk:
                     continue
             return False
         else:
-            if (len(Path(dir).spDir()) > 1):
+            if (len(Path(dir).split()) > 1):
                 return False
             else:
                 return True
